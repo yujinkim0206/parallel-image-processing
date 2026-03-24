@@ -1,19 +1,22 @@
 CFLAGS = -Wall -Wextra -g
 all: program
 
-program: main.o worker.o ppm.o filters.o
+program: main.o worker.o ppm.o filters.o io_utils.o
 	gcc $(CFLAGS) -o $@ $^ -lm
 
-main.o: main.c common.h ppm.h filters.h worker.h
+main.o: main.c protocol.h ppm.h filters.h worker.h io_utils.h
 	gcc $(CFLAGS) -c $<
 
-worker.o: worker.c common.h ppm.h filters.h worker.h
+worker.o: worker.c protocol.h ppm.h filters.h worker.h io_utils.h
 	gcc $(CFLAGS) -c $<
 
-ppm.o: ppm.c ppm.h common.h
+ppm.o: ppm.c ppm.h 
 	gcc $(CFLAGS) -c $<
 
-filters.o: filters.c filters.h ppm.h common.h
+filters.o: filters.c filters.h ppm.h 
+	gcc $(CFLAGS) -c $<
+
+io_utils.o: io_utils.c io_utils.h protocol.h
 	gcc $(CFLAGS) -c $<
 
 clean:
