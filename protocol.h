@@ -25,11 +25,6 @@ typedef enum {
     STATUS_FAIL = 1
 } status_t;
 
-typedef enum {
-    FILE_PPM = 1,
-    FILE_BMP = 2
-} file_type_t;
-
 /*
  * Worker -> Parent
  * Sent once after worker initialization is complete.
@@ -48,7 +43,6 @@ typedef struct {
     uint32_t msg_type;                 /* MSG_JOB */
     uint32_t job_id;
     uint32_t filter_type;              /* FILTER_GREY / FILTER_BLUR / FILTER_EDGE */
-    uint32_t file_type;                /* FILE_PPM / FILE_BMP */
     char     input_path[MAX_PATH_LEN]; /* null-terminated */
     char     output_path[MAX_PATH_LEN];/* null-terminated */
 } job_msg_t;
