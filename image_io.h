@@ -33,7 +33,7 @@ typedef struct {
  * 
  * Return value:
  *    0    : success, img->data is allocated on the heap and must be released using free_image() to avoid memory leaks
- *    -1   : error (the file cannot be opened, the header is wrong, or incomplete pixel data )
+ *    -1   : error (the file cannot be opened, the header is wrong, or incomplete pixel data)
  */
 int read_ppm(const char *path, image_t *img);
 
@@ -54,33 +54,5 @@ int write_ppm(const char *path, const image_t *img);
  * Safe to call even if img or img->data is already NULL.
  */
 void free_image(image_t *img);
-
-/*
- * A wrapper around read_ppm that checks the file type first.
- * Currently only FILE_PPM is supported.
- *
- * path - null-terminated file system path where the input image file is located
- * type - the format of the file (currently only FILE_PPM is supported)
- * img  - gets passed through to read_ppm
- *
- * Return value:
- *    0    : success
- *    -1   : error (unsupported file, or read_ppm fails)
- */
-int read_image(const char *path, file_type_t type, image_t *img);
-
-/*
- * A wrapper around write_ppm that checks the file type first.
- * Currently only FILE_PPM is supported.
- *
- * path - null-terminated file system path to save the output image file
- * type - the format to write (currently only FILE_PPM is supported)
- * img  - the image to save; passed through to write_ppm
- *
- * Return value:
- *    0    : success
- *    -1   : error (unsupported file, or write_ppm fails)
- */
-int write_image(const char *path, file_type_t type, const image_t *img);
 
 #endif /*IMAGE_IO_H*/
