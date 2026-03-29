@@ -6,7 +6,7 @@
 #include <math.h>
 
 /*
- * Clamp helper function to clamp an integer to the range [0, 255].
+ * Helper function to clamp an integer to the range [0, 255]; used by apply_edge_detect
  */
 static unsigned char clamp(int value) {
     if (value < 0) {
@@ -14,7 +14,14 @@ static unsigned char clamp(int value) {
     } else if (value > 255) {
         return 255;
     }   
-    return value;
+    return (unsigned char)value;
+}
+
+/*
+ * Helper function to compute luminance of an RGB triple using ITU-R BT.601 formula; used by apply_greyscale and apply_edge_detect
+ */
+static unsigned char luminance(unsigned char R, unsigned char G, unsigned char B) {
+    return (unsigned char)(0.299 * R + 0.587 * G + 0.114 * B);
 }
 
 int apply_greyscale(image_t *img) {
@@ -31,7 +38,7 @@ int apply_greyscale(image_t *img) {
 
             // Compute luminance using ITU-R BT.601 formula
             // L = 0.299 * R + 0.587 * G + 0.114 * B
-            unsigned char L = (unsigned char)(0.299 * R + 0.587 * G + 0.114 * B);
+            unsigned char L = luminance(R, G, B);
 
             // Set all channels to same luminance value in-place
             PIXEL_R(img, x, y) = L;
@@ -40,7 +47,7 @@ int apply_greyscale(image_t *img) {
         }
     }
 
-    
+    // Success
     return 0;
 }
 
@@ -54,7 +61,6 @@ int apply_blur(image_t *img) {
     unsigned char *temp_img_data = malloc(total_bytes);
 
     if (temp_img_data == NULL) {
-        perror("apply_blur: malloc failed");
         return -1;
     }
 
@@ -96,6 +102,7 @@ int apply_blur(image_t *img) {
     // Free temporary buffer
     free(temp_img_data);
 
+    // Success
     return 0;
 }
 
@@ -109,12 +116,19 @@ int apply_edge_detect(image_t *img) {
     unsigned char *temp_img_data = malloc(total_bytes);
 
     if (temp_img_data == NULL) {
-        perror("apply_edge_detect: malloc failed");
         return -1;
     }
 
-    int Gx_kernel[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
-    int Gy_kernel[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
+    int Gx_kernel[3][3] = {
+        {-1, 0, 1}, 
+        {-2, 0, 2}, 
+        {-1, 0, 1}
+    };
+    int Gy_kernel[3][3] = {
+        {-1, -2, -1}, 
+        {0, 0, 0}, 
+        {1, 2, 1}
+    };
 
     for (int y = 0; y < img->height; y++) {
         for (int x = 0; x < img->width; x++) {
@@ -132,15 +146,15 @@ int apply_edge_detect(image_t *img) {
                     // L = 0.299 * R + 0.587 * G + 0.114 * B
                     if (cur_x >= 0 && cur_x < img->width && cur_y >= 0 && cur_y < img->height) {
                         size_t index = ((size_t)cur_y * img->width + cur_x) * 3;
-                        unsigned char grey = (unsigned char)(0.299 * img->data[index] + 0.587 * img->data[index + 1] + 0.114 * img->data[index + 2]);
-                        Gx += grey * Gx_kernel[dy + 1][dx + 1];
-                        Gy += grey * Gy_kernel[dy + 1][dx + 1];
+                        unsigned char L = luminance(img->data[index], img->data[index + 1], img->data[index + 2]);
+                        Gx += L * Gx_kernel[dy + 1][dx + 1];
+                        Gy += L * Gy_kernel[dy + 1][dx + 1];
                     }
                 }
             }
 
             // Calculate magnitude
-            int magnitude = clamp((int)sqrt((double)(Gx * Gx + Gy * Gy)));
+            int magnitude = clamp((int)sqrt((double)Gx * Gx + (double)Gy * Gy));
             size_t target_index = ((size_t)y * img->width + x) * 3;
             temp_img_data[target_index] = (unsigned char)(magnitude);
             temp_img_data[target_index + 1] = (unsigned char)(magnitude);
@@ -154,6 +168,7 @@ int apply_edge_detect(image_t *img) {
     // Free temporary buffer
     free(temp_img_data);
 
+    // Success
     return 0;
 }
 
