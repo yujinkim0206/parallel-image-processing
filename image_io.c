@@ -25,7 +25,6 @@ int read_ppm(const char *path, image_t *img) {
     }
 
     // Skip whitespace and comments
-    char line[1024];
     int line_char;
 
     while ((line_char = getc(img_fp)) != EOF) {
