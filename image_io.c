@@ -119,23 +119,3 @@ void free_image(image_t *img) {
         img->data = NULL;
     }
 }
-
-int read_image(const char *path, file_type_t type, image_t *img) {
-    switch (type) {
-        case FILE_PPM:
-            return read_ppm(path, img);
-        default:
-            fprintf(stderr, "Error: unsupported file type\n");
-            return -1;
-    }
-}
-
-int write_image(const char *path, file_type_t type, const image_t *img) {
-    switch (type) {
-        case FILE_PPM:
-            return write_ppm(path, img);
-        default:
-            fprintf(stderr, "Error: unsupported file type\n");
-            return -1;
-    }
-}
