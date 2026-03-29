@@ -92,7 +92,7 @@ int recv_worker_hello(worker_info_t *workers, int i) {
         return -1;
     }
 
-    printf("parent: received WORKER_HELLO from worker_id=%u pid=%d\n", hello.worker_id, hello.pid);
+    printf("parent: WORKER_HELLO from worker_id=%u pid=%d\n", hello.worker_id, hello.pid);
     return 0;
 }
 
