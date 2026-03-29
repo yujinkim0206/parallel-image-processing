@@ -52,7 +52,7 @@ int write_ppm(const char *path, const image_t *img);
 /*
  * Frees the pixel data inside img and sets img->data to NULL.
  * Safe to call even if img or img->data is already NULL.
- */
+ */ 
 void free_image(image_t *img);
 
 #endif /*IMAGE_IO_H*/

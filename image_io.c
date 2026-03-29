@@ -14,7 +14,7 @@ int read_ppm(const char *path, image_t *img) {
     }
     img->data = NULL;
 
-    // Read magic number
+    // Read magic number 
     int char1 = fgetc(img_fp);
     int char2 = fgetc(img_fp);
 
