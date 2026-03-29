@@ -20,24 +20,27 @@ int setup_pipes(worker_info_t *workers, int i, int *child_read_fd, int *child_wr
         perror("pipe to_worker");
         return -1;
     }
+
     if (pipe(from_worker) < 0) {
         perror("pipe from_worker");
+        close(to_worker[0]);
+        close(to_worker[1]);
         return -1;
     }
 
-    workers[i].write_fd = to_worker[1];     // parent writes jobs here
-    workers[i].read_fd = from_worker[0];    // parent reads results here
+    workers[i].write_fd = to_worker[1];   // parent writes jobs here
+    workers[i].read_fd = from_worker[0];  // parent reads results here
 
-    *child_read_fd = to_worker[0];      // child reads jobs from here
-    *child_write_fd = from_worker[1];   // child writes results here
+    *child_read_fd = to_worker[0];        // child reads jobs from here
+    *child_write_fd = from_worker[1];     // child writes results here
 
     return 0;
 }
 
 /* Forks one worker process for slot i. Child closes inherited fds, runs worker_loop(),
- * then _exit(). Parent closes child-side fds and records the worker in the table.
+ * then exits. Parent closes child-side fds and records the worker in the table.
  * Returns 0 on success, -1 on failure. */
-int spawn_worker(worker_info_t *workers, int i, int child_read_fd, int child_write_fd, int num_workers) {
+int spawn_worker(worker_info_t *workers, int i, int child_read_fd, int child_write_fd) {
     pid_t pid = fork();
 
     if (pid < 0) {
@@ -54,8 +57,7 @@ int spawn_worker(worker_info_t *workers, int i, int child_read_fd, int child_wri
         }
 
         worker_loop(i, child_read_fd, child_write_fd);
-
-        _exit(0);
+        _exit(EXIT_FAILURE);
     }
 
     close(child_read_fd);
@@ -227,7 +229,7 @@ int run_parent(int num_workers, job_t *jobs, int num_jobs) {
             return -1;
         }
  
-        if (spawn_worker(workers, i, child_read_fd, child_write_fd, num_workers) < 0) {
+        if (spawn_worker(workers, i, child_read_fd, child_write_fd) < 0) {
             fprintf(stderr, "parent: spawn_worker failed for worker %d\n", i);
             cleanup_workers(workers, i);
             return -1;
