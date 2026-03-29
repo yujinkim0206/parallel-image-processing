@@ -1,146 +1,81 @@
 #include "protocol.h"
-#include "io_utils.h"
-#include "worker.h"
+#include "parent.h"
+#include "jobs.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
-static void send_test_job(int write_fd) {
-    job_msg_t job;
-    memset(&job, 0, sizeof(job));
+#define DEFAULT_WORKERS 4
 
-    job.msg_type = MSG_JOB;
-    job.job_id = 1;
-    job.filter_type = FILTER_GREY;
-
-    strncpy(job.input_path, "./input/test.ppm", MAX_PATH_LEN - 1);
-    job.input_path[MAX_PATH_LEN - 1] = '\0';
-
-    strncpy(job.output_path, "./output/test_grey.ppm", MAX_PATH_LEN - 1);
-    job.output_path[MAX_PATH_LEN - 1] = '\0';
-
-    if (write_exact(write_fd, &job, sizeof(job)) != sizeof(job)) {
-        perror("parent: write job");
-        exit(EXIT_FAILURE);
+/* Converts filter string ("grey", "blur", "edge") to filter_t enum.
+ * Returns 0 on success, -1 if the string is invalid. */
+static int parse_filter(const char *filter_str, filter_t *filter)
+{
+    if (strcmp(filter_str, "grey") == 0) {
+        *filter = FILTER_GREY;
+        return 0;
     }
+    if (strcmp(filter_str, "blur") == 0) {
+        *filter = FILTER_BLUR;
+        return 0;
+    }
+    if (strcmp(filter_str, "edge") == 0) {
+        *filter = FILTER_EDGE;
+        return 0;
+    }
+    return -1;
 }
 
-static void send_shutdown(int write_fd) {
-    shutdown_msg_t msg;
-    memset(&msg, 0, sizeof(msg));
-    msg.msg_type = MSG_SHUTDOWN;
-
-    if (write_exact(write_fd, &msg, sizeof(msg)) != sizeof(msg)) {
-        perror("parent: write shutdown");
-        exit(EXIT_FAILURE);
-    }
-}
-
-static void recv_hello(int read_fd) {
-    worker_hello_msg_t hello;
-    ssize_t n = read_exact(read_fd, &hello, sizeof(hello));
-
-    if (n < 0) {
-        perror("parent: read hello");
-        exit(EXIT_FAILURE);
-    }
-    if ((size_t)n != sizeof(hello)) {
-        fprintf(stderr, "parent: short read on hello\n");
-        exit(EXIT_FAILURE);
-    }
-    if (hello.msg_type != MSG_WORKER_HELLO) {
-        fprintf(stderr, "parent: expected WORKER_HELLO, got %u\n", hello.msg_type);
-        exit(EXIT_FAILURE);
-    }
-
-    printf("parent: received WORKER_HELLO from worker_id=%u pid=%d\n",
-           hello.worker_id, hello.pid);
-}
-
-static void recv_result(int read_fd) {
-    result_msg_t result;
-    ssize_t n = read_exact(read_fd, &result, sizeof(result));
-
-    if (n < 0) {
-        perror("parent: read result");
-        exit(EXIT_FAILURE);
-    }
-    if ((size_t)n != sizeof(result)) {
-        fprintf(stderr, "parent: short read on result\n");
-        exit(EXIT_FAILURE);
-    }
-    if (result.msg_type != MSG_RESULT) {
-        fprintf(stderr, "parent: expected RESULT_MSG, got %u\n", result.msg_type);
-        exit(EXIT_FAILURE);
-    }
-
-    printf("parent: received RESULT_MSG\n");
-    printf("parent: worker_id=%u job_id=%u status=%u\n",
-           result.worker_id, result.job_id, result.status);
-
-    if (result.status == STATUS_OK) {
-        printf("parent: output_path=%s\n", result.output_path);
-    } else {
-        printf("parent: error_msg=%s\n", result.error_msg);
-    }
-}
-
-int main(void) {
-    int to_worker[2];
-    int from_worker[2];
-
-    if (pipe(to_worker) < 0) {
-        perror("pipe to_worker");
-        return EXIT_FAILURE;
-    }
-    if (pipe(from_worker) < 0) {
-        perror("pipe from_worker");
+/* Parses CLI arguments into job_t array and hands off to
+ * run_parent() which handles worker spawning, scheduling, and cleanup. */
+int main(int argc, char *argv[])
+{
+    /* each job = input output filter  → 3 args */
+    if (argc < 4 || ((argc - 1) % 3 != 0)) {
+        fprintf(stderr,
+                "Usage: %s <input1> <output1> <grey|blur|edge> "
+                "[<input2> <output2> <grey|blur|edge> ...]\n",
+                argv[0]);
         return EXIT_FAILURE;
     }
 
-    pid_t pid = fork();
-    if (pid < 0) {
-        perror("fork");
+    int num_workers = DEFAULT_WORKERS;
+    int num_jobs = (argc - 1) / 3;
+
+    job_t *jobs = malloc((size_t)num_jobs * sizeof(job_t));
+    if (!jobs) {
+        perror("malloc jobs");
         return EXIT_FAILURE;
     }
 
-    if (pid == 0) {
-        /* child / worker */
-        close(to_worker[1]);
-        close(from_worker[0]);
+    for (int i = 0; i < num_jobs; i++) {
+        const char *input_path  = argv[1 + 3 * i];
+        const char *output_path = argv[2 + 3 * i];
+        const char *filter_str  = argv[3 + 3 * i];
 
-        worker_loop(0, to_worker[0], from_worker[1]);
+        filter_t filter;
+        if (parse_filter(filter_str, &filter) != 0) {
+            fprintf(stderr, "Invalid filter: %s\n", filter_str);
+            free(jobs);
+            return EXIT_FAILURE;
+        }
+
+        memset(&jobs[i], 0, sizeof(job_t));
+
+        jobs[i].job_id = i + 1;
+        jobs[i].filter = filter;
+        jobs[i].file_type = FILE_PPM;
+
+        strncpy(jobs[i].input_path, input_path, MAX_PATH_LEN - 1);
+        strncpy(jobs[i].output_path, output_path, MAX_PATH_LEN - 1);
     }
 
-    /* parent */
-    close(to_worker[0]);
-    close(from_worker[1]);
+    printf("parent: starting %d workers for %d jobs\n",
+           num_workers, num_jobs);
 
-    recv_hello(from_worker[0]);
+    int ret = run_parent(num_workers, jobs, num_jobs);
 
-    send_test_job(to_worker[1]);
-
-    recv_result(from_worker[0]);
-
-    send_shutdown(to_worker[1]);
-
-    close(to_worker[1]);
-    close(from_worker[0]);
-
-    int status = 0;
-    if (waitpid(pid, &status, 0) < 0) {
-        perror("waitpid");
-        return EXIT_FAILURE;
-    }
-
-    if (WIFEXITED(status)) {
-        printf("parent: worker exited with status %d\n", WEXITSTATUS(status));
-    } else {
-        printf("parent: worker did not exit normally\n");
-    }
-
-    return EXIT_SUCCESS;
+    free(jobs);
+    return (ret == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
