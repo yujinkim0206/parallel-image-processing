@@ -5,6 +5,11 @@
 #include <ctype.h>
 
 int read_ppm(const char *path, image_t *img) {
+    // Initialize output struct for img
+    img->width = 0;
+    img->height = 0;
+    img->data = NULL;
+
     // Open file
     FILE *img_fp = fopen(path, "rb");
 
@@ -12,7 +17,6 @@ int read_ppm(const char *path, image_t *img) {
         perror("Error opening file");
         return -1;
     }
-    img->data = NULL;
 
     // Read magic number 
     int char1 = fgetc(img_fp);
@@ -84,6 +88,10 @@ int read_ppm(const char *path, image_t *img) {
 }
 
 int write_ppm(const char *path, const image_t *img) {
+    if (img == NULL || img->data == NULL) {
+        return -1;
+    }
+    
     // Open file
     FILE *img_fp = fopen(path, "wb");
     if (!img_fp) {

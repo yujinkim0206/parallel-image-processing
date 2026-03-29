@@ -21,4 +21,16 @@ typedef struct {
     char output_path[MAX_PATH_LEN];
 } job_t;
 
+/*
+ * Execute a single image processing job:
+ * reads input PPM -> applies filter -> writes output PPM
+ *
+ * job - pointer to the job describing what to do
+ *
+ * Return value:
+ *    0    : success
+ *    -1   : error (read, filter, or write failed; memory always cleaned up)
+ */
+int run_job(const job_t *job);
+
 #endif
