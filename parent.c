@@ -92,7 +92,7 @@ int recv_worker_hello(worker_info_t *workers, int i) {
         return -1;
     }
 
-    printf("parent: WORKER_HELLO from worker_id=%u pid=%d\n", hello.worker_id, hello.pid);
+    printf("parent: received WORKER_HELLO from worker_id=%u pid=%d\n", hello.worker_id, hello.pid);
     return 0;
 }
 
@@ -145,7 +145,7 @@ int recv_result_from_worker(worker_info_t *workers, int i) {
         return -1;
     }
 
-    printf("parent: RESULT from worker_id=%u job_id=%u status=%u\n", result.worker_id, result.job_id, result.status);
+    printf("parent: received RESULT from worker_id=%u job_id=%u status=%u\n", result.worker_id, result.job_id, result.status);
 
     if (result.status == STATUS_OK) {
         printf("parent: output_path=%s\n", result.output_path);
