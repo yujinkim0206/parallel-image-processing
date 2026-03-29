@@ -20,7 +20,7 @@ int run_parent(int num_workers, job_t *jobs, int num_jobs);
 
 /* helpers */
 int setup_pipes(worker_info_t *workers, int i, int *child_read_fd, int *child_write_fd);
-int spawn_worker(worker_info_t *workers, int i, int child_read_fd, int child_write_fd, int num_workers);
+int spawn_worker(worker_info_t *workers, int i, int child_read_fd, int child_write_fd);
 int recv_worker_hello(worker_info_t *workers, int i);
 int send_job_to_worker(worker_info_t *workers, int i, job_t *jobs, int job_idx);
 int recv_result_from_worker(worker_info_t *workers, int i);

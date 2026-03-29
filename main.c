@@ -43,6 +43,12 @@ int main(int argc, char *argv[])
     int num_workers = DEFAULT_WORKERS;
     int num_jobs = (argc - 1) / 3;
 
+    if (num_workers > MAX_WORKERS) {
+        fprintf(stderr, "Too many workers: %d (max %d)\n",
+                num_workers, MAX_WORKERS);
+        return EXIT_FAILURE;
+    }
+
     job_t *jobs = malloc((size_t)num_jobs * sizeof(job_t));
     if (!jobs) {
         perror("malloc jobs");
@@ -65,14 +71,17 @@ int main(int argc, char *argv[])
 
         jobs[i].job_id = i + 1;
         jobs[i].filter = filter;
-        jobs[i].file_type = FILE_PPM;
 
         strncpy(jobs[i].input_path, input_path, MAX_PATH_LEN - 1);
+        jobs[i].input_path[MAX_PATH_LEN - 1] = '\0';
+
         strncpy(jobs[i].output_path, output_path, MAX_PATH_LEN - 1);
+        jobs[i].output_path[MAX_PATH_LEN - 1] = '\0';
     }
 
     printf("parent: starting %d workers for %d jobs\n",
            num_workers, num_jobs);
+    fflush(stdout);
 
     int ret = run_parent(num_workers, jobs, num_jobs);
 
