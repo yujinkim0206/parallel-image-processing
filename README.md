@@ -11,9 +11,11 @@ Input format: PPM P6 binary
 
 ## Architecture
 
-<img src="assets/architecture.jpg" width="70%" alt="">
+<p align="center">
+    <img src="assets/architecture.jpg" width="70%" alt="">
+</p>
 
-The system follows a **worker pool** pattern:
+The system follows a worker pool pattern:
 
 - Parent creates all workers upfront via `fork()`
 - Each worker sends a `WORKER_HELLO` handshake before receiving any jobs
