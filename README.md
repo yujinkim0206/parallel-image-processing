@@ -11,7 +11,7 @@ Input format: PPM P6 binary
 
 ## Architecture
 
-![Architecture Diagram](assets/architecture.jpg)
+<img src="assets/architecture.jpg" width="70%" alt="">
 
 The system follows a **worker pool** pattern:
 
