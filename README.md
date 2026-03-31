@@ -16,7 +16,6 @@ Input format: PPM P6 binary
 </p>
 
 The system follows a worker pool pattern:
-
 - Parent creates all workers upfront via `fork()`
 - Each worker sends a `WORKER_HELLO` handshake before receiving any jobs
 - Parent dispatches `JOB_MSG` to idle workers; workers respond with `RESULT_MSG`
